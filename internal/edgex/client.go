@@ -91,19 +91,19 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
 
 	defer resp.Body.Close()
 
-	if v != nil {
-		err = json.NewDecoder(resp.Body).Decode(v)
-		if err != nil && err != io.EOF {
-			return nil, err
-		}
-	}
-
 	// dump the whole response pretty
 	// dump, err := httputil.DumpResponse(resp, true)
 	// if err != nil {
 	// 	return nil, err
 	// }
 	// fmt.Printf("response: %s\n", string(dump))
+
+	if v != nil {
+		err = json.NewDecoder(resp.Body).Decode(v)
+		if err != nil && err != io.EOF {
+			return nil, err
+		}
+	}
 
 	return resp, nil
 }

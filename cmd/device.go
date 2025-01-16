@@ -12,7 +12,7 @@ var (
 	deviceDescription    string
 	deviceAdminState     string
 	deviceOperatingState string
-	deviceAutoEvents     []string
+	deviceAutoEvents     string
 	deviceProtocols      string
 	deviceServiceName    string
 )

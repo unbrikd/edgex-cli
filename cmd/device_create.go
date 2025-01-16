@@ -15,27 +15,36 @@ var deviceCreateCmd = &cobra.Command{
 		client := edgex.NewClient()
 
 		// parse each event in the deviceAutoEvents slice into a slice of edgex.AutoEvent
+
 		autoEvents := make([]edgex.AutoEvent, 0)
-		for _, e := range deviceAutoEvents {
-			tmp := &edgex.AutoEvent{}
-			err := json.Unmarshal([]byte(e), tmp)
-			if err != nil {
-				fmt.Printf("failed to parse auto event: %v", err)
-			}
-
-			if tmp.Interval == "" {
-				fmt.Printf("interval is required for auto event")
-			}
-
-			if tmp.SourceName == "" {
-				fmt.Printf("sourceName is required for auto event")
-			}
-
-			autoEvents = append(autoEvents, *tmp)
+		autoEvent := edgex.AutoEvent{}
+		err := json.Unmarshal([]byte(deviceAutoEvents), &autoEvent)
+		if err != nil {
+			fmt.Printf("failed to parse auto event: %v", err)
 		}
+		autoEvents = append(autoEvents, autoEvent)
+
+		// for _, e := range deviceAutoEvents {
+		// 	tmp := &edgex.AutoEvent{}
+		// 	fmt.Printf("Parsing auto event: %s\n", e)
+		// 	err := json.Unmarshal([]byte(e), tmp)
+		// 	if err != nil {
+		// 		fmt.Printf("failed to parse auto event: %v", err)
+		// 	}
+
+		// 	if tmp.Interval == "" {
+		// 		fmt.Printf("interval is required for auto event")
+		// 	}
+
+		// 	if tmp.SourceName == "" {
+		// 		fmt.Printf("sourceName is required for auto event")
+		// 	}
+
+		// 	autoEvents = append(autoEvents, *tmp)
+		// }
 
 		protocols := make(map[string]interface{})
-		err := json.Unmarshal([]byte(deviceProtocols), &protocols)
+		err = json.Unmarshal([]byte(deviceProtocols), &protocols)
 		if err != nil {
 			fmt.Printf("failed to parse protocols: %v", err)
 		}
@@ -75,6 +84,6 @@ func init() {
 	deviceCreateCmd.Flags().StringVarP(&deviceDescription, "description", "d", "", "Device description")
 	deviceCreateCmd.Flags().StringVar(&deviceAdminState, "admin-state", "UNLOCKED", "Device admin state")
 	deviceCreateCmd.Flags().StringVar(&deviceOperatingState, "operating-state", "UP", "Device operating state")
-	deviceCreateCmd.Flags().StringSliceVar(&deviceAutoEvents, "auto-event", make([]string, 0), "Device auto events")
+	deviceCreateCmd.Flags().StringVar(&deviceAutoEvents, "auto-event", "", "Device auto events")
 	deviceCreateCmd.Flags().StringVar(&deviceProtocols, "protocols", "{}", "Device protocols")
 }
