@@ -3,6 +3,8 @@ package edgex
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/google/uuid"
 )
 
 type CoreMetadataService service
@@ -31,12 +33,17 @@ type DeviceResponse struct {
 	Device Device `json:"device"`
 }
 
+type AllDevicesResponse struct {
+	Count   int      `json:"totalCount"`
+	Devices []Device `json:"devices"`
+}
+
 type DeviceCreateRequest struct {
 	ApiVersion string `json:"apiVersion"`
 	Device     Device `json:"device"`
 }
 
-func (c *CoreMetadataService) DeviceExists(deviceName string) (bool, error) {
+func (c *CoreMetadataService) DeviceExistsFromName(deviceName string) (bool, error) {
 	path := fmt.Sprintf("%s/device/check/name/%s", c.BaseURL.String(), deviceName)
 
 	req, err := c.client.NewRequest("GET", path, nil)
@@ -52,7 +59,46 @@ func (c *CoreMetadataService) DeviceExists(deviceName string) (bool, error) {
 	return res.StatusCode == http.StatusOK, nil
 }
 
-func (c *CoreMetadataService) GetDevice(deviceName string) (*Device, error) {
+func (c *CoreMetadataService) DeviceExistsFromId(deviceId string) (bool, error) {
+	allDevices, err := c.GetAllDevices(100)
+	if err != nil {
+		return false, err
+	}
+
+	for _, device := range *allDevices {
+		if device.Id == deviceId {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+func (c *CoreMetadataService) GetAllDevices(limit int) (*[]Device, error) {
+	path := fmt.Sprintf("%s/device/all?offset=0&limit=%d", c.BaseURL.String(), limit)
+	reqUUID := uuid.New()
+
+	req, err := c.client.NewRequest("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("X-Correlation-ID", reqUUID.String())
+
+	allDevices := AllDevicesResponse{}
+	res, err := c.client.Do(req, &allDevices)
+	if err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("status code: %d", res.StatusCode)
+	}
+
+	return &allDevices.Devices, nil
+}
+
+func (c *CoreMetadataService) GetDeviceFromName(deviceName string) (*Device, error) {
 	path := fmt.Sprintf("%s/device/name/%s", c.BaseURL.String(), deviceName)
 
 	req, err := c.client.NewRequest("GET", path, nil)
@@ -73,7 +119,22 @@ func (c *CoreMetadataService) GetDevice(deviceName string) (*Device, error) {
 	return &deviceResponse.Device, nil
 }
 
-func (c *CoreMetadataService) DeleteDevice(deviceName string) error {
+func (c *CoreMetadataService) GetDeviceFromId(deviceId string) (*Device, error) {
+	allDevices, err := c.GetAllDevices(100)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, device := range *allDevices {
+		if device.Id == deviceId {
+			return &device, nil
+		}
+	}
+
+	return nil, fmt.Errorf("device not found")
+}
+
+func (c *CoreMetadataService) DeleteDeviceFromName(deviceName string) error {
 	path := fmt.Sprintf("%s/device/name/%s", c.BaseURL.String(), deviceName)
 
 	req, err := c.client.NewRequest("DELETE", path, nil)
@@ -91,6 +152,21 @@ func (c *CoreMetadataService) DeleteDevice(deviceName string) error {
 	}
 
 	return nil
+}
+
+func (c *CoreMetadataService) DeleteDeviceFromId(deviceId string) error {
+	allDevices, err := c.GetAllDevices(100)
+	if err != nil {
+		return err
+	}
+
+	for _, device := range *allDevices {
+		if device.Id == deviceId {
+			return c.DeleteDeviceFromName(device.Name)
+		}
+	}
+
+	return fmt.Errorf("device not found")
 }
 
 func (c *CoreMetadataService) CreateDevice(d Device) (string, error) {
@@ -119,7 +195,7 @@ func (c *CoreMetadataService) CreateDevice(d Device) (string, error) {
 	}
 
 	if int(creationInfo[0]["statusCode"].(float64)) != http.StatusCreated {
-		return "", fmt.Errorf("failed to create device: %d - %s", creationInfo[0]["statusCode"], creationInfo[0]["message"])
+		return "", fmt.Errorf("failed to create device: %d - %s", int(creationInfo[0]["statusCode"].(float64)), creationInfo[0]["message"])
 	}
 
 	return creationInfo[0]["id"].(string), nil

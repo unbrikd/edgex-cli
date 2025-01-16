@@ -15,6 +15,8 @@ var (
 	deviceAutoEvents     string
 	deviceProtocols      string
 	deviceServiceName    string
+	getAll               bool
+	by                   string
 )
 
 var deviceCmd = &cobra.Command{

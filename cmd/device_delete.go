@@ -13,16 +13,30 @@ var deviceDeleteCmd = &cobra.Command{
 	Short: "Delete a device",
 	Run: func(cmd *cobra.Command, args []string) {
 		client := edgex.NewClient()
-		err := client.CoreMetadataService.DeleteDevice(deviceName)
-		if err != nil {
-			fmt.Printf("error deleting device: %s\n", err)
+
+		if by == "name" {
+			err := client.CoreMetadataService.DeleteDeviceFromName(deviceName)
+			if err != nil {
+				fmt.Printf("error deleting device: %s\n", err)
+				os.Exit(1)
+			}
+			fmt.Printf("Deleted: %s\n", deviceName)
+		} else if by == "id" {
+			err := client.CoreMetadataService.DeleteDeviceFromId(deviceId)
+			if err != nil {
+				fmt.Printf("error deleting device: %s\n", err)
+				os.Exit(1)
+			}
+			fmt.Printf("Deleted: %s\n", deviceId)
+		} else {
+			fmt.Println("error: flag --by must be 'name' or 'id'")
 			os.Exit(1)
 		}
-
-		fmt.Printf("Device %s deleted\n", deviceName)
 	},
 }
 
 func init() {
 	deviceDeleteCmd.Flags().StringVarP(&deviceName, "name", "n", "", "Device name")
+	deviceDeleteCmd.Flags().StringVarP(&deviceId, "id", "i", "", "Device id")
+	deviceDeleteCmd.Flags().StringVar(&by, "by", "name", "Delete by name or id (name or id)")
 }
