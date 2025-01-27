@@ -23,6 +23,24 @@ type Device struct {
 	Protocols      map[string]interface{} `json:"protocols"`
 }
 
+// {
+// 	"created": 1737972928745,
+// 	"modified": 1737972928745,
+// 	"id": "27b09496-72cc-44b0-8bff-9626c3895c81",
+// 	"name": "eaton-cloud-connector",
+// 	"baseAddress": "http://localhost:59799",
+// 	"adminState": "UNLOCKED"
+// },
+
+type DeviceService struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type DeviceServiceResponse struct {
+	Service DeviceService `json:"service"`
+}
+
 type AutoEvent struct {
 	Interval   string `json:"interval"`
 	OnChange   bool   `json:"onChange"`
@@ -199,4 +217,25 @@ func (c *CoreMetadataService) CreateDevice(d Device) (string, error) {
 	}
 
 	return creationInfo[0]["id"].(string), nil
+}
+
+func (c *CoreMetadataService) GetDeviceServiceFromName(dsName string) (*DeviceService, error) {
+	path := fmt.Sprintf("%s/deviceservice/name/%s", c.BaseURL.String(), dsName)
+
+	req, err := c.client.NewRequest("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	dsResponse := &DeviceServiceResponse{}
+	res, err := c.client.Do(req, dsResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("status code: %d", res.StatusCode)
+	}
+
+	return &dsResponse.Service, nil
 }
